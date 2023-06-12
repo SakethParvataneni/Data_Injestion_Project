@@ -1,32 +1,39 @@
 
+resource "aws_cloudwatch_event_rule" "schedule_rule" {
+  name        = "movielens-scheduled-rule"
+  description = "Scheduled rule to trigger moviele ns Lambda function"
 
+  schedule_expression = "cron(0 12 * * ? *)" 
 
-resource "aws_cloudwatch_event_rule" "saketh-event-bridge-tf" {
-  name        = "saketh-event-bridge-tf"
-  description = "Trigger Lambda function"
-  event_pattern = <<EOF
-{
-  "source": [
-    "aws.lambda"
-  ],
-  "detail-type": [
-    "Lambda function State-change Notification"
-  ]
-}
-EOF
+  tags = {
+    Environment = "Production"
+  }
 }
 
-# Create the EventBridge target to invoke the Lambda function
-resource "aws_cloudwatch_event_target" "my_event_target" {
-  rule      = aws_cloudwatch_event_rule.saketh-event-bridge-tf.name
-  target_id = "my-event-target"
-  arn       = aws_lambda_function.lambda-src-raw.arn
-
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.schedule_rule.name
+  arn       = aws_sfn_state_machine.sfn_state_machine.arn
+  role_arn  = aws_iam_role.my_state_machine_role.arn
+  target_id = aws_sfn_state_machine.my_state_machine.name
 }
 
-resource "aws_cloudwatch_event_rule" "event-bridge-tf" {
-  name        = "event-bridge-tf"
-  # description = "Example Event Rule"
+resource "aws_lambda_invocation" "lambda_invoke" {
+  function_name = "Movielens-data-Ingestion_tf"
+  input         = <<JSON
+    {
+      "data_set": "movielens",
+      "key2": "value2"
+    }
+  JSON
+}
 
-  schedule_expression = "cron(0 12 * * ? *)"
+resource "aws_sns_topic" "movielens_topic" {
+  name = "saketh-movielens-topic" 
+}
+
+resource "aws_sns_topic_subscription" "movielens_subscription" {
+  topic_arn = aws_sns_topic.movielens_topic.arn
+  protocol  = "email-json"  
+  endpoint  = var.email_id  
+
 }
