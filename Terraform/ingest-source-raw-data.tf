@@ -76,22 +76,4 @@ resource "aws_sns_topic_subscription" "email_tf_subscription" {
   endpoint  = "sakethparvataneni@gmail.com"
 }
 
-resource "aws_iam_role_policy" "sns_policy" {
-  name   = "sns-tf-lambda"
-  role   = aws_iam_role.iam_for_lambda.name
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [
-      {
-        Action    = ["sns:*"]
-        Effect    = "Allow"
-        Resource  = "*"
-      }
-    ]
-  })
-}
 
-resource "aws_iam_role_policy_attachment" "sns_attachment" {
-  role       = aws_iam_role.iam_for_lambda.name
-  policy_arn = aws_iam_role_policy.sns_policy.name
-}
