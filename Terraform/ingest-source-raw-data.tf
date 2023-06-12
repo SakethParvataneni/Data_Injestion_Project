@@ -66,36 +66,32 @@ resource "aws_iam_role_policy_attachment" "s3_attachment" {
   policy_arn = aws_iam_policy.s3_policy.arn
 }
 
-resource "aws_sns_topic" "data-ingestion-sns-tf" {
+resource "aws_sns_topic" "data_ingestion_sns_tf" {
   name = "data-ingestion-sns-tf"
 }
 
-resource "aws_sns_topic_subscription" "email_tf_subcription" {
-  topic_arn = aws_sns_topic.email_tf_subcription.arn
+resource "aws_sns_topic_subscription" "email_tf_subscription" {
+  topic_arn = aws_sns_topic.data_ingestion_sns_tf.arn
   protocol  = "email-json"
   endpoint  = "sakethparvataneni@gmail.com"
 }
 
 resource "aws_iam_role_policy" "sns_policy" {
-  name        = "sns-tf-lambda"
-  description = "Allow SNS to work with Lambda"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "sns:*"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    }
-  ]
-}
-EOF
+  name   = "sns-tf-lambda"
+  role   = aws_iam_role.iam_for_lambda.name
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action    = ["sns:*"]
+        Effect    = "Allow"
+        Resource  = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "sns_attachment" {
-  role       = aws_iam_role..name
-  policy_arn = aws_iam_policy.sns_policy.arn
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_role_policy.sns_policy.name
 }
