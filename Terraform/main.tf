@@ -10,18 +10,13 @@ resource "aws_cloudwatch_event_rule" "schedule_rule" {
   }
 }
 
-resource "aws_cloudwatch_event_target" "lambda_target" {
-  rule      = aws_cloudwatch_event_rule.schedule_rule.name
-  arn       = aws_sfn_state_machine.sfn_state_machine.arn
-  role_arn  = aws_iam_role.my_state_machine_role.arn
-  target_id = aws_sfn_state_machine.my_state_machine.name
-}
 
 resource "aws_lambda_invocation" "lambda_invoke" {
-  function_name = "Movielens-data-Ingestion_tf"
+  function_name = "ingest-source-raw-data"
   input         = <<JSON
     {
-      "data_set": "saketh_movielens"
+      "data_set": "saketh_movielens",
+       "key": "source_file"
     }
   JSON
 }

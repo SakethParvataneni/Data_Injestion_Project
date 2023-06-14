@@ -76,8 +76,8 @@ resource "aws_sns_topic_subscription" "email_tf_subscription" {
   endpoint  = "sakethparvataneni@gmail.com"
 }
 
-resource "aws_iam_role" "state_machine_role" {
-  name = "my_state_machine_role"
+resource "aws_iam_role" "state_machine_role_tf" {
+  name = "my_state_machine_role_tf"
 
   assume_role_policy = <<EOF
 {
@@ -97,12 +97,12 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "state_machine_role_policy_attachment" {
-  role       = aws_iam_role.state_machine_role.name
+  role       = aws_iam_role.state_machine_role_tf.name
   policy_arn = "arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess"
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name = "my_lambda_role"
+  name = "my_lambda_role_tf"
 
   assume_role_policy = <<EOF
 {
@@ -126,14 +126,7 @@ resource "aws_iam_role_policy_attachment" "lambda_role_policy_attachment" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_lambda_function" "lambda" {
-  function_name = "my_lambda_function"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "index.handler"
-  runtime       = "python3.8"
-  filename      = "C:/Projects/Data_Ingestion_Project/Ingestion_Lambda_Function_Raw/ingestion-raw.py.zip"
-  # Other properties like `source_code_hash`, `timeout`, `memory_size`, etc. can be added here
-}
+
 
 resource "aws_cloudwatch_event_rule" "event_rule" {
   name        = "my_event_rule"
@@ -143,15 +136,18 @@ resource "aws_cloudwatch_event_rule" "event_rule" {
 
 resource "aws_sfn_state_machine" "state_machine" {
   name       = "my_state_machine"
-  role_arn    = aws_iam_role.state_machine_role.arn 
+  role_arn    = aws_iam_role.state_machine_role_tf.arn 
   definition  = <<EOF
 {
-  "Comment": "A Hello World example of the Amazon States Language using a Pass state",
+  "Comment": "An example of invoking an AWS Lambda function using the Amazon States Language",
   "StartAt": "InvokeLambda",
   "States": {
     "InvokeLambda": {
       "Type": "Task",
-      "Resource": "${aws_lambda_function.lambda.arn}",
+      "Resource": "arn:aws:lambda:us-east-2:746694705576:function:${aws_lambda_invocation.lambda_invoke.function_name}",
+      "Parameters": {
+        "Payload.$": "$.input"
+      },
       "End": true
     }
   }
@@ -159,12 +155,13 @@ resource "aws_sfn_state_machine" "state_machine" {
 EOF
 }
 
+
 resource "aws_cloudwatch_event_target" "event_target" {
   rule      = aws_cloudwatch_event_rule.event_rule.name
   arn       = aws_sfn_state_machine.state_machine.arn
   target_id = "invoke_state_machine"
-  role_arn  = aws_iam_role.state_machine_role.arn
+  role_arn  = aws_iam_role.state_machine_role_tf.arn
   
-  depends_on = [aws_sfn_state_machine.state_machine, aws_lambda_function.lambda]
+  depends_on = [aws_sfn_state_machine.state_machine, aws_lambda_function.lambda-src-raw]
 }
 
