@@ -37,3 +37,5 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+Terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/5.1.0/windows_amd64/terraform-provider-aws_v5.1.0_x5.exe
