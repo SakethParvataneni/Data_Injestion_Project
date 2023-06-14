@@ -76,4 +76,95 @@ resource "aws_sns_topic_subscription" "email_tf_subscription" {
   endpoint  = "sakethparvataneni@gmail.com"
 }
 
+resource "aws_iam_role" "state_machine_role" {
+  name = "my_state_machine_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "states.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "state_machine_role_policy_attachment" {
+  role       = aws_iam_role.state_machine_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess"
+}
+
+resource "aws_iam_role" "lambda_role" {
+  name = "my_lambda_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_role_policy_attachment" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_lambda_function" "lambda" {
+  function_name = "my_lambda_function"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "index.handler"
+  runtime       = "python3.8"
+  filename      = "C:/Projects/Data_Ingestion_Project/Ingestion_Lambda_Function_Raw/ingestion-raw.py.zip"
+  # Other properties like `source_code_hash`, `timeout`, `memory_size`, etc. can be added here
+}
+
+resource "aws_cloudwatch_event_rule" "event_rule" {
+  name        = "my_event_rule"
+  description = "EventBridge scheduler rule"
+  schedule_expression = "rate(1 day)"
+}
+
+resource "aws_sfn_state_machine" "state_machine" {
+  name       = "my_state_machine"
+  role_arn    = aws_iam_role.state_machine_role.arn 
+  definition  = <<EOF
+{
+  "Comment": "A Hello World example of the Amazon States Language using a Pass state",
+  "StartAt": "InvokeLambda",
+  "States": {
+    "InvokeLambda": {
+      "Type": "Task",
+      "Resource": "${aws_lambda_function.lambda.arn}",
+      "End": true
+    }
+  }
+}
+EOF
+}
+
+resource "aws_cloudwatch_event_target" "event_target" {
+  rule      = aws_cloudwatch_event_rule.event_rule.name
+  arn       = aws_sfn_state_machine.state_machine.arn
+  target_id = "invoke_state_machine"
+  role_arn  = aws_iam_role.state_machine_role.arn
+  
+  depends_on = [aws_sfn_state_machine.state_machine, aws_lambda_function.lambda]
+}
 

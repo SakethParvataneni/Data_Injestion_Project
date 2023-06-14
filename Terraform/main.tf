@@ -21,8 +21,7 @@ resource "aws_lambda_invocation" "lambda_invoke" {
   function_name = "Movielens-data-Ingestion_tf"
   input         = <<JSON
     {
-      "data_set": "movielens",
-      "key2": "value2"
+      "data_set": "saketh_movielens"
     }
   JSON
 }
@@ -37,3 +36,4 @@ resource "aws_sns_topic_subscription" "movielens_subscription" {
   endpoint  = var.email_id  
 
 }
+
