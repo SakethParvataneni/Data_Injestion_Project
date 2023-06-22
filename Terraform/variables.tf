@@ -4,7 +4,7 @@ variable "aws_region" {
 }
 
 variable "email_id" {
-    default = "sakethparvataneni@gmail.com"
+  default = "sakethparvataneni@gmail.com"
 }
 
 

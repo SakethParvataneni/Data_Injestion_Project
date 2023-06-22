@@ -1,5 +1,5 @@
 {
-    "source_system": "saketh_movielens",
+    "data_set": "saketh_movielens",
     "type": "file_ingestion",
     "schedule": "cron(0 20 * * ? *)",
     "source_bucket": "saketh-indv-movielens-source-dataset",

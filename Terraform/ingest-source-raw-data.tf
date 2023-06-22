@@ -41,6 +41,7 @@ data "aws_iam_policy_document" "s3_policy" {
   }
 }
 
+
 resource "aws_iam_role" "iam_for_lambda" {
   name               = "iam_for_lambda"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
@@ -129,15 +130,15 @@ resource "aws_iam_role_policy_attachment" "lambda_role_policy_attachment" {
 
 
 resource "aws_cloudwatch_event_rule" "event_rule" {
-  name        = "my_event_rule"
-  description = "EventBridge scheduler rule"
+  name                = "my_event_rule"
+  description         = "EventBridge scheduler rule"
   schedule_expression = "rate(1 day)"
 }
 
 resource "aws_sfn_state_machine" "state_machine" {
   name       = "my_state_machine"
-  role_arn    = aws_iam_role.state_machine_role_tf.arn 
-  definition  = <<EOF
+  role_arn   = aws_iam_role.state_machine_role_tf.arn
+  definition = <<EOF
 {
   "Comment": "An example of invoking an AWS Lambda function using the Amazon States Language",
   "StartAt": "InvokeLambda",
@@ -161,7 +162,31 @@ resource "aws_cloudwatch_event_target" "event_target" {
   arn       = aws_sfn_state_machine.state_machine.arn
   target_id = "invoke_state_machine"
   role_arn  = aws_iam_role.state_machine_role_tf.arn
-  
+
   depends_on = [aws_sfn_state_machine.state_machine, aws_lambda_function.lambda-src-raw]
 }
+
+resource "aws_iam_policy" "lambda_dynamodb_policy" {
+  name        = "lambda-dynamodb-policy"
+  description = "Allow DynamoDB access"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "dynamodb:*",
+      "Resource": "arn:aws:dynamodb:us-east-2:746694705576:table/${aws_dynamodb_table.Data_Ingestion_audit_tf.name}"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_role_dynamodb_policy_attachment" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.lambda_dynamodb_policy.arn
+}
+
 
