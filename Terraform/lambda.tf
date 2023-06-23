@@ -20,7 +20,8 @@ resource "aws_lambda_function" "lambda-src-raw" {
   environment {
     variables = {
       dynamic_bucket = "saketh-movielens-data-ingestion-code"
+      dynamic_key    = "source_file/Ingest_config.json"
+
     }
   }
 }
-

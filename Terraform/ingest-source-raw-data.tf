@@ -135,8 +135,8 @@ resource "aws_cloudwatch_event_rule" "event_rule" {
   schedule_expression = "rate(1 day)"
 }
 
-resource "aws_sfn_state_machine" "state_machine" {
-  name       = "my_state_machine"
+resource "aws_sfn_state_machine" "my_state_machine_tf" {
+  name       = "my_state_machine_tf"
   role_arn   = aws_iam_role.state_machine_role_tf.arn
   definition = <<EOF
 {
@@ -159,11 +159,11 @@ EOF
 
 resource "aws_cloudwatch_event_target" "event_target" {
   rule      = aws_cloudwatch_event_rule.event_rule.name
-  arn       = aws_sfn_state_machine.state_machine.arn
+  arn       = aws_sfn_state_machine.my_state_machine_tf.arn
   target_id = "invoke_state_machine"
   role_arn  = aws_iam_role.state_machine_role_tf.arn
 
-  depends_on = [aws_sfn_state_machine.state_machine, aws_lambda_function.lambda-src-raw]
+  depends_on = [aws_sfn_state_machine.my_state_machine_tf, aws_lambda_function.lambda-src-raw]
 }
 
 resource "aws_iam_policy" "lambda_dynamodb_policy" {

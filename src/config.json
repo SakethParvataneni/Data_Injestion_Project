@@ -1,5 +1,0 @@
-{
-    "source_bucket": "saketh-indv-movielens-source-dataset",
-    "source_folder": "movielens",
-    "target_bucket": "saketh-indv-movielens-raw-dataset"
-}
