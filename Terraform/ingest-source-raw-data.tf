@@ -172,17 +172,18 @@ resource "aws_iam_policy" "lambda_dynamodb_policy" {
 
   policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "dynamodb:*",
-      "Resource": "arn:aws:dynamodb:us-east-2:746694705576:table/${aws_dynamodb_table.Data_Ingestion_audit_tf.name}"
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "dynamodb:PutItem",
+            "Resource": "arn:aws:dynamodb:us-east-2:746694705576:table/data-ingestion-audit-tf"
+        }
+    ]
 }
 EOF
 }
+
 
 resource "aws_iam_role_policy_attachment" "lambda_role_dynamodb_policy_attachment" {
   role       = aws_iam_role.iam_for_lambda.name

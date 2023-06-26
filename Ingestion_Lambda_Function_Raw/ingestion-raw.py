@@ -29,6 +29,15 @@ def send_notification(message, subject):
         Message=message,
         Subject=subject
     )
+def check_table_exists(table_name):
+    try:
+        response = dynamodb_client.describe_table(TableName=table_name)
+        log.info(f"Table {table_name} exists")
+    except dynamodb_client.exceptions.ResourceNotFoundException:
+        send_notification("DynamoDB table not found", "DynamoDB table does not exist")
+    except Exception as e:
+        log.exception(f"Error occurred while checking table existence: {str(e)}")
+        send_notification(f"Error occurred while checking table existence: {str(e)}", "Error in checking DynamoDB table")
 
 def lambda_handler(event, context):
     try:
@@ -56,34 +65,58 @@ def lambda_handler(event, context):
         log.info(response)
         send_notification("Bucket and config file are executed successfully", "Movielens_data_Ingestion_tf succeeded")
 
-        response = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=source_folder)
-        log.info(response)
-        send_notification("Buckets are read successfully", "Movielens_data_Ingestion_tf succeeded")
+        pipeline = config_json.get("pipeline")
+        for step in pipeline:
+            data_asset = step.get("data_asset")
+            raw_config = step.get("raw")
+            partition = raw_config.get("partition")
+            file_pattern = raw_config.get("file_pattern")
+            file_type = raw_config.get("file_type")
 
-        file_list = []
-        for obj in response.get('Contents', []):
-            file_name = obj['Key']
-            file_name = file_name.replace(source_folder + '/', '')
-            file_list.append(file_name)
-
-        log.info(file_list[1:])
-
-        for file in file_list[1:]:
-            file_part = file.split('.')[0]
-            file_extension = file.split('.')[-1]
-            log.info(file_part)
-            otherkey = f"{source_folder}/{file_part}/year={year}/month={month}/day={day}/{file_part}_{current_date}.{file_extension}"
-            log.info(otherkey)
-            copy_source = {
-                'Bucket': source_bucket,
-                'Key': f"{source_folder}/{file}"
-            }
-            s3_client.copy_object(
-                CopySource=copy_source,
-                Bucket=target_bucket,
-                Key=otherkey
+            response = s3_client.list_objects_v2(
+                Bucket=source_bucket,
+                Prefix=f"{source_folder}/{file_pattern}"
             )
-            send_notification("Files are successfully copied", "Movielens_data_Ingestion_tf succeeded")
+            log.info(response)
+            send_notification("Buckets are read successfully", "Movielens_data_Ingestion_tf succeeded")
+
+            file_list = []
+            for obj in response.get('Contents', []):
+                file_name = obj['Key']
+                file_name = file_name.replace(source_folder + '/', '')
+                file_list.append(file_name)
+
+            log.info(file_list)
+
+            for file in file_list:
+                file_part = file.split('.')[0]
+                file_extension = file.split('.')[-1]
+                log.info(file_part)
+                otherkey = f"{source_folder}/{file_part}/year={year}/month={month}/day={day}/{file_part}_{current_date}.{file_extension}"
+                log.info(otherkey)
+                copy_source = {
+                    'Bucket': source_bucket,
+                    'Key': f"{source_folder}/{file}"
+                }
+                s3_client.copy_object(
+                    CopySource=copy_source,
+                    Bucket=target_bucket,
+                    Key=otherkey
+                )
+
+                dynamodb_item = {
+                    'PK': {'S': dataset},
+                    'SK': {'S': f"{partition}_{file_part}"},
+                    'FileExtension': {'S': file_extension},
+                    'FilePath': {'S': otherkey},
+                    'Timestamp': {'S': str(current_date)}
+                }
+                dynamodb_client.put_item(
+                    TableName='data-ingestion-audit-tf',
+                    Item=dynamodb_item
+                )
+
+                send_notification("Files are successfully copied", "Movielens_data_Ingestion_tf succeeded")
 
         return {
             'statusCode': 200,
