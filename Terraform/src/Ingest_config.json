@@ -39,7 +39,7 @@
                 "source_folder": "movielens",
                 "target_bucket": "saketh-indv-movielens-raw-dataset",
                 "partition": "DAY",
-                "file_pattern": "links",
+                "file_pattern": "link",
                 "file_type": "csv"
             },
             "staging": {},

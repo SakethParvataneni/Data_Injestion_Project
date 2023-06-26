@@ -176,7 +176,16 @@ resource "aws_iam_policy" "lambda_dynamodb_policy" {
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": "dynamodb:PutItem",
+            "Action": [
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+            ],
             "Resource": "arn:aws:dynamodb:us-east-2:746694705576:table/data-ingestion-audit-tf"
         }
     ]
